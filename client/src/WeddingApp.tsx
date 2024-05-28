@@ -1,104 +1,104 @@
-import React, { Component, ChangeEvent, MouseEvent } from "react";
-import { isRecord } from './record';
+import React, { Component } from 'react';
+import GuestList from './components/GuestList';
+import AddGuest from './components/AddGuest';
+import GuestDetails from './components/GuestDetails';
+import { Guest } from './types';
 
-
-// TODO: When you're ready to get started, you can remove all the example 
-//   code below and start with this blank application:
-
-// type WeddingAppState = {
-// }
-// 
-// /** Displays the UI of the Wedding rsvp application. */
-// export class WeddingApp extends Component<{}, WeddingAppState> {
-// 
-//   constructor(props: {}) {
-//     super(props);
-// 
-//     this.state = {};
-//   }
-//   
-//   render = (): JSX.Element => {
-//     return <div></div>;
-//   };
-// }
-
+type View = 'list' | 'add' | 'details';
 
 type WeddingAppState = {
-  name: string;  // mirror state of name text box
-  msg: string;   // message sent from server
+  guests: Guest[];
+  currentView: View;
+  previousView: View;
+  selectedGuest?: Guest;
 }
 
-
-/** Displays the UI of the Wedding rsvp application. */
 export class WeddingApp extends Component<{}, WeddingAppState> {
 
   constructor(props: {}) {
     super(props);
-
-    this.state = {name: "", msg: ""};
-  }
-  
-  render = (): JSX.Element => {
-    return (<div>
-        <div>
-          <label htmlFor="name">Name:</label>
-          <input type="name" id="name" value={this.state.name}
-                 onChange={this.doNameChange}></input>
-          <button onClick={this.doDummyClick}>Dummy</button>
-        </div>
-        {this.renderMessage()}
-      </div>);
-  };
-
-  renderMessage = (): JSX.Element => {
-    if (this.state.msg === "") {
-      return <div></div>;
-    } else {
-      return <p>Server says: {this.state.msg}</p>;
-    }
-  };
-
-  doNameChange = (evt: ChangeEvent<HTMLInputElement>): void => {
-    this.setState({name: evt.target.value, msg: ""});
-  };
-
-  doDummyClick = (_evt: MouseEvent<HTMLButtonElement>): void => {
-    const name = this.state.name.trim();
-    if (name.length > 0) {
-      const url = "/api/dummy?name=" + encodeURIComponent(name);
-      fetch(url).then(this.doDummyResp)
-          .catch(() => this.doDummyError("failed to connect to server"));
-    }
-  };
-
-  doDummyResp = (res: Response): void => {
-    if (res.status === 200) {
-      res.json().then(this.doDummyJson)
-          .catch(() => this.doDummyError("200 response is not JSON"));
-    } else if (res.status === 400) {
-      res.text().then(this.doDummyError)
-          .catch(() => this.doDummyError("400 response is not name"));
-    } else {
-      this.doDummyError(`bad status code ${res.status}`);
-    }
-  };
-
-  doDummyJson = (data: unknown): void => {
-    if (!isRecord(data)) {
-      console.error("200 response is not a record", data);
-      return;
-    }
-
-    if (typeof data.msg !== "string") {
-      console.error("'msg' field of 200 response is not a string", data.msg);
-      return;
-    }
-
-    this.setState({msg: data.msg});
+    this.state = { guests: [], currentView: 'list', previousView: 'list' };
   }
 
-  doDummyError = (msg: string): void => {
-    console.error(`Error fetching /api/dummy: ${msg}`);
+  componentDidMount = () => {
+    this.doFetchGuests();
+  }
+
+  doFetchGuests = () => {
+    fetch('/api/guests')
+      .then(response => response.json())
+      .then(data => this.setState({ guests: data }))
+      .catch(error => console.error('Error fetching guests:', error));
   };
 
+  handleAddGuest = (guest: Guest) => {
+    fetch('/api/guests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(guest),
+    })
+    .then(response => response.json())
+    .then(newGuest => this.setState(prevState => ({ guests: [...prevState.guests, newGuest], currentView: 'list', previousView: prevState.currentView })))
+    .catch(error => console.error('Error adding guest:', error));
+  };
+
+  handleUpdateGuest = (updatedGuest: Guest) => {
+    fetch(`/api/guests/${updatedGuest.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedGuest),
+    })
+    .then(response => response.json())
+    .then(updated => {
+      this.setState(prevState => ({
+        guests: prevState.guests.map(guest => guest.id === updated.id ? updated : guest),
+        currentView: 'list',
+        previousView: prevState.currentView,
+      }));
+    })
+    .catch(error => console.error('Error updating guest:', error));
+  };
+
+  switchView = (view: View, guest?: Guest) => {
+    if (this.state.currentView === view) {
+      if (view === 'list') {
+        alert("You're already here!");
+      }
+      return;
+    }
+    this.setState(prevState => ({
+      currentView: view,
+      previousView: prevState.currentView,
+      selectedGuest: guest
+    }));
+  };
+
+  goBack = () => {
+    this.setState(prevState => ({
+      currentView: prevState.previousView,
+      previousView: prevState.currentView,
+    }));
+  };
+
+  render() {
+    const { guests, currentView, selectedGuest } = this.state;
+
+    return (
+      <div>
+        <nav>
+          <button onClick={() => this.switchView('list')}>Guest List</button>
+          <button onClick={() => this.switchView('add')}>Add Guest</button>
+        </nav>
+        {currentView === 'list' && <GuestList guests={guests} onSelectGuest={guest => this.switchView('details', guest)} />}
+        {currentView === 'add' && <AddGuest onAddGuest={this.handleAddGuest} onBack={this.goBack} />}
+        {currentView === 'details' && selectedGuest && <GuestDetails guest={selectedGuest} onUpdateGuest={this.handleUpdateGuest} onBack={this.goBack} />}
+      </div>
+    );
+  }
 }
+
+export default WeddingApp;

@@ -1,39 +1,84 @@
 import { Request, Response } from "express";
 import { ParamsDictionary } from "express-serve-static-core";
 
-
-// Require type checking of request body.
 type SafeRequest = Request<ParamsDictionary, {}, Record<string, unknown>>;
-type SafeResponse = Response;  // only writing, so no need to check
+type SafeResponse = Response;
 
+interface Guest {
+  id: string;
+  name: string;
+  association: 'James' | 'Molly';
+  family: boolean;
+  dietaryRestrictions?: string;
+  bringingGuest?: boolean;
+  additionalGuestName?: string;
+  additionalGuestDietaryRestrictions?: string;
+}
 
-// TODO: remove the dummy route
+let guests: Guest[] = [];
+let idCounter = 0;
 
-/**
- * Dummy route that just returns a hello message to the client.
- * @param req The request object
- * @param res The response object
- */
-export const dummy = (req: SafeRequest, res: SafeResponse): void => {
-  const name = first(req.query.name);
-  if (name === undefined) {
-    res.status(400).send('missing or invalid "name" parameter');
+const generateId = (): string => {
+  return (idCounter++).toString();
+};
+
+export const getGuests = (_req: SafeRequest, res: SafeResponse): void => {
+  res.json(guests);
+};
+
+export const addGuest = (req: SafeRequest, res: SafeResponse): void => {
+  const { name, association, family, dietaryRestrictions, bringingGuest, additionalGuestName, additionalGuestDietaryRestrictions } = req.body as unknown as Guest;
+
+  if (typeof name !== 'string' || (association !== 'James' && association !== 'Molly') || typeof family !== 'boolean') {
+    res.status(400).send('Missing required fields');
     return;
   }
 
-  res.send({msg: `Hi, ${name}!`});
+  const newGuest: Guest = {
+    id: generateId(),
+    name,
+    association,
+    family,
+    dietaryRestrictions,
+    bringingGuest,
+    additionalGuestName,
+    additionalGuestDietaryRestrictions,
+  };
+
+  guests.push(newGuest);
+  res.status(201).send(JSON.stringify(newGuest));
 };
 
+/**
+ * Update a guest.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
+export const updateGuest = (req: SafeRequest, res: SafeResponse): void => {
+  const id = req.params.id;
+  const { name, association, family, dietaryRestrictions, bringingGuest, additionalGuestName, additionalGuestDietaryRestrictions } = req.body as unknown as Guest;
 
-// Helper to return the (first) value of the parameter if any was given.
-// (This is mildly annoying because the client can also give mutiple values,
-// in which case, express puts them into an array.)
-const first = (param: unknown): string|undefined => {
-  if (Array.isArray(param)) {
-    return first(param[0]);
-  } else if (typeof param === 'string') {
-    return param;
-  } else {
-    return undefined;
+  const guestIndex = guests.findIndex(guest => guest.id === id);
+
+  if (guestIndex === -1) {
+    res.status(404).send({ error: 'Guest not found' });
+    return;
   }
+
+  if (typeof name !== 'string' || (association !== 'James' && association !== 'Molly') || typeof family !== 'boolean') {
+    res.status(400).send('Invalid data format');
+    return;
+  }
+
+  guests[guestIndex] = Object.assign({}, guests[guestIndex], {
+    name,
+    association,
+    family,
+    dietaryRestrictions,
+    bringingGuest,
+    additionalGuestName,
+    additionalGuestDietaryRestrictions,
+  });
+
+  res.send(JSON.stringify(guests[guestIndex]));
 };
