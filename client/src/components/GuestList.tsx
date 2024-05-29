@@ -1,58 +1,23 @@
 import React from 'react';
-import { Guest } from '../types';
+import { Guest } from '../Guest';
+import { calculateGuestSummary } from '../Guest';
 
+// Define the props interface for GuestList component
 interface GuestListProps {
-  guests: Guest[];
-  onSelectGuest: (guest: Guest) => void;
+  guests: Guest[]; // Array of Guest objects
+  onSelectGuest: (guest: Guest) => void; // Callback function for selecting a guest
 }
 
-const GuestList: React.FC<GuestListProps> = ({ guests, onSelectGuest }) => {
-  const getSummary = () => {
-    const mollyGuests = guests.filter(guest => guest.association === 'Molly');
-    const jamesGuests = guests.filter(guest => guest.association === 'James');
+// GuestList component
+const GuestList: React.FC<GuestListProps> = ({ guests, onSelectGuest }): JSX.Element => {
+  const summary = calculateGuestSummary(guests); // Calculate guest summary
 
-    const calculateRange = (guests: Guest[]) => {
-      let familyCount = 0;
-      let minGuests = 0;
-      let maxGuests = 0;
-
-      guests.forEach(guest => {
-        familyCount += guest.family ? 1 : 0;
-        minGuests += 1;
-        maxGuests += 1;
-
-        if (guest.bringingGuest === true) {
-          minGuests += 1;
-          maxGuests += 1;
-        } else if (guest.bringingGuest === undefined) {
-          maxGuests += 1;
-        }
-      });
-
-      return { familyCount, minGuests, maxGuests };
-    };
-
-    const mollyRange = calculateRange(mollyGuests);
-    const jamesRange = calculateRange(jamesGuests);
-
-    const formatRange = (min: number, max: number) => {
-      return min === max ? `${min}` : `${min}-${max}`;
-    };
-
-    return (
-      <div>
-        <h2>Summary:</h2>
-        <p>Molly's Guests: {formatRange(mollyRange.minGuests, mollyRange.maxGuests)} (Family: {mollyRange.familyCount})</p>
-        <p>James's Guests: {formatRange(jamesRange.minGuests, jamesRange.maxGuests)} (Family: {jamesRange.familyCount})</p>
-      </div>
-    );
-  };
-
-  const getPlusOneStatus = (bringingGuest: boolean | undefined) => {
+  // Function to get the plus one status
+  const getPlusOneStatus = (bringingGuest: boolean | undefined): string => {
     if (bringingGuest === undefined) {
-      return '+1?';
+      return '+1?'; // Return '+1?' if bringingGuest is undefined
     }
-    return bringingGuest ? '+1' : '0';
+    return bringingGuest ? '+1' : '0'; // Return '+1' if bringingGuest is true, '0' otherwise
   };
 
   return (
@@ -63,12 +28,16 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onSelectGuest }) => {
           <li key={guest.id}>
             <a href="#" onClick={(e) => { e.preventDefault(); onSelectGuest(guest); }} style={{ color: 'blue', textDecoration: 'underline' }}>
               {guest.name}
-            </a> ({guest.association}) - {guest.family ? 'Family' : 'Friend'}
-            <span> - {getPlusOneStatus(guest.bringingGuest)}</span>
+            </a> | {guest.family ? 'Family' : 'Friend'} of {guest.association} 
+            <span> | {getPlusOneStatus(guest.bringingGuest)}</span>
           </li>
         ))}
       </ul>
-      {getSummary()}
+      <div>
+        <h2>Summary:</h2>
+        <p>Molly's Guests: {summary.molly.minGuests === summary.molly.maxGuests ? summary.molly.minGuests : `${summary.molly.minGuests}-${summary.molly.maxGuests}`} (Family: {summary.molly.familyCount})</p>
+        <p>James's Guests: {summary.james.minGuests === summary.james.maxGuests ? summary.james.minGuests : `${summary.james.minGuests}-${summary.james.maxGuests}`} (Family: {summary.james.familyCount})</p>
+      </div>
     </div>
   );
 };

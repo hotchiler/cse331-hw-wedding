@@ -4,7 +4,7 @@ import { ParamsDictionary } from "express-serve-static-core";
 type SafeRequest = Request<ParamsDictionary, {}, Record<string, unknown>>;
 type SafeResponse = Response;
 
-interface Guest {
+export interface Guest {
   id: string;
   name: string;
   association: 'James' | 'Molly';
@@ -15,21 +15,31 @@ interface Guest {
   additionalGuestDietaryRestrictions?: string;
 }
 
-let guests: Guest[] = [];
-let idCounter = 0;
+export let guests: Guest[] = [];
+let idCounter: number = 0;
 
 const generateId = (): string => {
   return (idCounter++).toString();
 };
 
+/**
+ * Get all guests.
+ * @param _req - The request object.
+ * @param res - The response object.
+ */
 export const getGuests = (_req: SafeRequest, res: SafeResponse): void => {
-  res.json(guests);
+  res.send(JSON.stringify(guests));
 };
 
+/**
+ * Add a guest.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 export const addGuest = (req: SafeRequest, res: SafeResponse): void => {
   const { name, association, family, dietaryRestrictions, bringingGuest, additionalGuestName, additionalGuestDietaryRestrictions } = req.body as unknown as Guest;
 
-  if (typeof name !== 'string' || (association !== 'James' && association !== 'Molly') || typeof family !== 'boolean') {
+  if (!name || !association || typeof family !== 'boolean') {
     res.status(400).send('Missing required fields');
     return;
   }
@@ -61,11 +71,11 @@ export const updateGuest = (req: SafeRequest, res: SafeResponse): void => {
   const guestIndex = guests.findIndex(guest => guest.id === id);
 
   if (guestIndex === -1) {
-    res.status(404).send({ error: 'Guest not found' });
+    res.status(404).send(JSON.stringify({ error: 'Guest not found' }));
     return;
   }
 
-  if (typeof name !== 'string' || (association !== 'James' && association !== 'Molly') || typeof family !== 'boolean') {
+  if (!name || !association || typeof family !== 'boolean') {
     res.status(400).send('Invalid data format');
     return;
   }

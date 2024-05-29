@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Guest } from '../types';
+import { Guest } from '../Guest';
 
 interface GuestDetailsProps {
   guest: Guest;
   onUpdateGuest: (guest: Guest) => void;
-  onBack: () => void; // Add a prop for the back button handler
+  onBack: () => void;
 }
 
 const GuestDetails: React.FC<GuestDetailsProps> = ({ guest, onUpdateGuest, onBack }) => {
@@ -18,6 +18,23 @@ const GuestDetails: React.FC<GuestDetailsProps> = ({ guest, onUpdateGuest, onBac
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+
+    if (bringingGuest === true) {
+      if (additionalGuestName.trim() === '') {
+        alert('Please enter the name of the additional guest.');
+        return;
+      }
+      if (additionalGuestDietaryRestrictions.trim() === '') {
+        alert('Please enter the dietary restrictions of the additional guest.');
+        return;
+      }
+    }
+
+    if (dietaryRestrictions.trim() === '') {
+      alert('Please enter dietary restrictions.');
+      return;
+    }
+
     const updatedGuest: Guest = {
       ...guest,
       name,
@@ -67,11 +84,11 @@ const GuestDetails: React.FC<GuestDetailsProps> = ({ guest, onUpdateGuest, onBac
           <input type="checkbox" checked={family} onChange={e => setFamily(e.target.checked)} />
         </div>
         <div>
-          <label>Dietary Restrictions:</label>
-          <input type="text" value={dietaryRestrictions} onChange={e => setDietaryRestrictions(e.target.value)} />
+          <label>Any dietary restrictions? Type 'none' if not:</label>
+          <input type="text" value={dietaryRestrictions} onChange={e => setDietaryRestrictions(e.target.value)} required />
         </div>
         <div>
-          <label>Bringing a Guest:</label>
+          <label>Bringing a Guest?</label>
           <div>
             <label>
               <input
@@ -106,11 +123,11 @@ const GuestDetails: React.FC<GuestDetailsProps> = ({ guest, onUpdateGuest, onBac
           <>
             <div>
               <label>Additional Guest Name:</label>
-              <input type="text" value={additionalGuestName} onChange={e => setAdditionalGuestName(e.target.value)} />
+              <input type="text" value={additionalGuestName} onChange={e => setAdditionalGuestName(e.target.value)} required />
             </div>
             <div>
               <label>Additional Guest Dietary Restrictions:</label>
-              <input type="text" value={additionalGuestDietaryRestrictions} onChange={e => setAdditionalGuestDietaryRestrictions(e.target.value)} />
+              <input type="text" value={additionalGuestDietaryRestrictions} onChange={e => setAdditionalGuestDietaryRestrictions(e.target.value)} required />
             </div>
           </>
         )}
